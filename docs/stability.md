@@ -82,9 +82,7 @@ After 1.0, we hope to follow Kubernetes' versioning with a skew-policy identical
 
 This means that it will be clearer what versions to pick, but it also means we are unable to follow semver's requirement for [major version increments on breaking changes](https://semver.org/spec/v1.0.0.html#spec-item-10), and technically breaking changes like upgrading pre-1.0 libraries can sneak in between versions.
 
-To counteract this, we are discussing strengthened deprecation and interface policies externally.
-
-TODO: link to issue
+To improve this situation, we are discussing [how to strengthen policies post 1.0](https://github.com/kube-rs/kube-rs/issues/923) separately.
 
 <!--
 ## Panic Policy

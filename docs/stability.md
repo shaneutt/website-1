@@ -54,6 +54,47 @@ Public interfaces from `kube` is currently allowed to change between **minor** v
 
 In general; we **prefer deprecations and duplication** of logic **if** it **avoids confusion**. But sometimes the least confusing thing to do is often just removing the old interface.
 
+## Kubernetes Versions
+
+Our Kubernetes version compatibility is similar to the strategy employed by [client-go](https://github.com/kubernetes/client-go#compatibility-matrix):
+
+| kube version   | Min K8S V  | Max K8S V | Generated Source     |
+|--------------- | ---------- | --------- | -------------------- |
+| `0.66.0`       | `1.14`     | `1.22`    | [k8s-openapi@0.13.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0131-2021-10-08) |
+| `0.67.0`       | `1.16`     | `1.23`    | [k8s-openapi@0.14.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0140-2022-01-23) |
+| `0.68.0`       | `1.16`     | `1.23`    | [k8s-openapi@0.14.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0140-2022-01-23) |
+| `0.69.0`       | `1.16`     | `1.23`    | [k8s-openapi@0.14.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0140-2022-01-23) |
+| `0.70.0`       | `1.16`     | `1.23`    | [k8s-openapi@0.14.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0140-2022-01-23) |
+| `0.71.0`       | `1.16`     | `1.23`    | [k8s-openapi@0.14.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0140-2022-01-23) |
+| `0.72.0`       | `1.16`     | `1.23`    | [k8s-openapi@0.14.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0140-2022-01-23) |
+| `0.73.0`       | `1.18`     | `1.24`    | [k8s-openapi@0.15.0](https://github.com/Arnavion/k8s-openapi/blob/master/CHANGELOG.md#v0150-2022-05-22) |
+
+We establish **soft minimum** and **soft maximum** versions, but kube is still forwards and backwards compatible to a large extent:
+
+1. if `cluster k8s version > max supported k8s version` (cluster behind kube), then:
+    * kube has more features than Kubernetes
+    * new rust structs might not work with your cluster version yet
+2. if `cluster k8s version == max supported k8s version` (cluster in sync with kube), then:
+    * kube has api parity with Kubernetes
+    * kube will support all structs from generated source
+3. if `cluster k8s version < max supported k8s version` (cluster ahead of kube), then:
+    * some kubernetes resources might not have rust counterparts
+    * some rust structs might have been deprecated on the kubernetes side
+    * some deprecated kubernetes resources might have been removed from kube (TODO: figure out max delta)
+4. if `cluster k8s version < min supported k8s version` (cluster **far** ahead of kube), then:
+    * some kubernetes resources might not have rust counterparts
+    * some rust structs might have been deprecated on the kubernetes side
+    * ⚡⚡ some rust structs might have been removed on the kubernetes side ⚡⚡
+
+The only bad case is 4; when your `kube` version is lagging so far behind the cluster has both deprecated and removed resources. In this case you might have no way to query certain APIs.
+
+In all other cases, both kube and Kubernetes will share a large functioning API surface, while in certain cases relying on deprecated apis to fill the gap.
+
+Please note that alpha APIs may vanish or change significantly in a single release, and is not covered by any guarantees.
+
+When using `k8s-openapi` we recommend you pin your version to the highest Kubernetes version available.
+With `k8s-pb`, we plan on [doing this automatically](https://github.com/kube-rs/k8s-pb/issues/10).
+
 ## Major Release 1.0
 
 While we satisfy [client requirements](https://github.com/kubernetes/design-proposals-archive/blob/main/api-machinery/csi-new-client-library-procedure.md#client-support-level) for stability, we have not released a `1.0.0` version yet.
@@ -69,20 +110,14 @@ Those are the primary reasons for not releasing a 1.0, but there are also extern
 - we depend on pre-1.0 libraries and upgrading these under semver would force major bumps
 - the public async iterator interface is [still being stabilised in rust](https://github.com/rust-lang/rust/issues/79024)
 
+Because of these conditions we unfortunately cannot say a lot about our planned release cadence after hitting 1.0, but it is [being discussed separately](https://github.com/kube-rs/kube-rs/issues/923).
+
 As a result, we instead:
 
 - **track** our breaking changes with [changelog-change labeled PRs](https://github.com/kube-rs/kube-rs/pulls?q=is%3Apr+label%3Achangelog-change+is%3Aclosed)
 - **inform** on necessary changes in [releases](https://github.com/kube-rs/kube-rs/releases) and the [[changelog]]
 - **carefully change** according to our [guidelines on interface changes](#interface-changes)
 - **deprecate** according to our [deprecation strategy](#deprecation-strategy)
-
-## Post 1.0
-
-After 1.0, we hope to follow Kubernetes' versioning with a skew-policy identical to [client-go](https://github.com/kubernetes/client-go#compatibility-matrix), using planned setup in [k8s-pb](https://github.com/kube-rs/k8s-pb/issues/10).
-
-This means that it will be clearer what versions to pick, but it also means we are unable to follow semver's requirement for [major version increments on breaking changes](https://semver.org/spec/v1.0.0.html#spec-item-10), and technically breaking changes like upgrading pre-1.0 libraries can sneak in between versions.
-
-To improve this situation, we are discussing [how to strengthen policies post 1.0](https://github.com/kube-rs/kube-rs/issues/923) separately.
 
 <!--
 ## Panic Policy
